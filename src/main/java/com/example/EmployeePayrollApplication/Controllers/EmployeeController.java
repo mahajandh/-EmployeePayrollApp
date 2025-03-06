@@ -1,7 +1,8 @@
 package com.example.EmployeePayrollApplication.Controllers;
 
+import com.example.EmployeePayrollApplication.DTOs.EmployeeDTO;
 import com.example.EmployeePayrollApplication.Model.Employee;
-import com.example.EmployeePayrollApplication.Repositories.EmployeeRepository;
+import com.example.EmployeePayrollApplication.Services.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,54 +11,45 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/employeepayrollservice")
+@RequestMapping("/api/employees")
 public class EmployeeController {
 
     @Autowired
-    private EmployeeRepository employeeRepository;
+    private EmployeeService employeeService;
 
-    // GET: Get all employees
-    @GetMapping("/")
+    // Get all employees
+    @GetMapping
     public List<Employee> getAllEmployees() {
-        return employeeRepository.findAll();
+        return employeeService.getAllEmployees();
     }
 
-    // GET: Get employee by ID
+    // Get employee by ID
     @GetMapping("/get/{id}")
     public ResponseEntity<Employee> getEmployeeById(@PathVariable Long id) {
-        Employee employee = employeeRepository.findById(id).orElse(null);
-        return employee != null ? ResponseEntity.ok(employee) : ResponseEntity.notFound().build();
+        Optional<Employee> employee = employeeService.getEmployeeById(id);
+        return employee.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // POST: Create a new employee
+    // Create a new employee using DTO
     @PostMapping("/create")
-    public ResponseEntity<Employee> createEmployee(@RequestBody Employee employee) {
-        Employee savedEmployee = employeeRepository.save(employee);
-        return ResponseEntity.ok(savedEmployee);
+    public Employee createEmployee(@RequestBody EmployeeDTO employeeDTO) {
+        return employeeService.createEmployee(employeeDTO);
     }
 
-    // PUT: Update employee
+    // Update an employee using DTO
     @PutMapping("/update/{id}")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable Long id, @RequestBody Employee employeeDetails) {
-        Optional<Employee> optionalEmployee = employeeRepository.findById(id);
-        if (optionalEmployee.isPresent()) {
-            Employee employee = optionalEmployee.get();
-            employee.setName(employeeDetails.getName());
-            employee.setDepartment(employeeDetails.getDepartment());
-            employee.setSalary(employeeDetails.getSalary());
-            Employee updatedEmployee = employeeRepository.save(employee);
-            return ResponseEntity.ok(updatedEmployee);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Employee> updateEmployee(@PathVariable Long id, @RequestBody EmployeeDTO employeeDTO) {
+        Employee updatedEmployee = employeeService.updateEmployee(id, employeeDTO);
+        return ResponseEntity.ok(updatedEmployee);
     }
 
-    // DELETE: Delete empl Supporting the REST API Calls in the Controlleroyee by ID
+    // Delete employee by ID
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
-        if (employeeRepository.existsById(id)) {
-            employeeRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
+    public ResponseEntity<String> deleteEmployee(@PathVariable Long id) {
+        boolean isDeleted = employeeService.deleteEmployee(id);
+        if (isDeleted) {
+            return ResponseEntity.ok("Employee deleted successfully.");
         } else {
             return ResponseEntity.notFound().build();
         }
